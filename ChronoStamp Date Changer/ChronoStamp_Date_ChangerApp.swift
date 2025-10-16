@@ -13,6 +13,10 @@ struct ChronoStamp_Date_ChangerApp: App {
         WindowGroup {
             ContentView()
         }
+        // These modifiers create a more modern, seamless window appearance
+        // that works well with material backgrounds.
+        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unifiedCompact)
         .commands {
             // This adds a new menu item to the main app menu (e.g., "ChronoStamp Date Changer").
             CommandGroup(after: .appInfo) {
@@ -27,6 +31,8 @@ struct ChronoStamp_Date_ChangerApp: App {
         Settings {
             SettingsView()
         }
+        // Give the settings window a more appropriate style too.
+        .windowResizability(.contentMinSize)
     }
 }
 
@@ -44,6 +50,6 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .frame(width: 400, height: 100) // Give the settings view a reasonable default size.
+        .background(.regularMaterial) // Apply consistent "glass" effect
     }
 }

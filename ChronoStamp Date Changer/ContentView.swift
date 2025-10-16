@@ -22,76 +22,35 @@ struct ContentView: View {
     @State private var isShowingResultAlert = false
 
     var body: some View {
-        // VStack arranges views vertically
-        VStack(spacing: 16) {
-            Text("ChronoStamp Date Changer")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.top)
-
-            Text("Updates 'Date Created' to match the filename. 'Date Modified' is only updated if the filename date is more recent.")
-                .font(.callout)
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-                .padding(.horizontal)
-
-            GroupBox("Supported Formats") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("The date is parsed from the beginning of the filename.")
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("• **Full Date:** `YYYY-MM-DD` or `YYYYMMDD`")
-                        Text("• **Month:** `YYYY-MM` or `YYYYMM` (uses last day of month)")
-                        Text("• **Year Range:** `YYYY-YYYY` or `YYYYYYYY` (uses Dec 31 of second year)")
+        ScrollView {
+            VStack(spacing: 24) {
+                headerView
+                
+                dropZoneView
+                    .onDrop(of: [UTType.fileURL], isTargeted: $isTargeted) { providers in
+                        handleDrop(providers: providers)
+                        return true // Indicates the drop was successful
                     }
-                    Text("Separators can be `-` or `_`, or even nothing between YYYY, MMn and DD.")
-                        .font(.footnote)
-                    Text("Years must be between 1900 and 2200.")
-                        .font(.footnote)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            // The main drop zone area
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [10]))
-                .background(isTargeted ? Color.accentColor.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 12))
-                .frame(minHeight: 150)
-                .overlay(
-                    VStack(spacing: 8) {
-                        Image(systemName: "folder.badge.plus")
-                            .font(.largeTitle)
-                        Text("Drop Files Here")
-                            .font(.headline)
+                    .onTapGesture(perform: openFilePicker)
+                
+                if !fileURLs.isEmpty {
+                    fileListView
+                    
+                    Button(action: processFiles) {
+                        Label("Update File Dates", systemImage: "wand.and.stars")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
                     }
-                    .foregroundColor(isTargeted ? .accentColor : .secondary)
-                )
-                // This modifier handles the drop action
-                .onDrop(of: [UTType.fileURL], isTargeted: $isTargeted) { providers in
-                    handleDrop(providers: providers)
-                    return true // Indicates the drop was successful
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
                 }
-
-            // Display a list of the dropped files
-            if !fileURLs.isEmpty {
-                List {
-                    ForEach(fileURLs, id: \.self) { url in
-                        Label(url.lastPathComponent, systemImage: "doc")
-                    }
-                }
-                .cornerRadius(8)
-                .frame(maxHeight: 200) // Constrain the list height
+                
+                instructionsView
             }
-
-            // The button that triggers the script
-            Button(action: processFiles) {
-                Label("Update File Dates", systemImage: "calendar.badge.clock")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity) // Makes the button wide
-            }
-            .buttonStyle(.borderedProminent) // Modern macOS button style
-            .disabled(fileURLs.isEmpty) // The button is disabled if no files have been dropped
+            .padding(.horizontal, 32)
+            .padding(.vertical)
         }
-        .padding()
         .alert("Processing Complete", isPresented: $isShowingResultAlert) {
             Button("OK") {}
         } message: {
@@ -99,33 +58,152 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Subviews
+
+    private var headerView: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 48, weight: .light))
+                .foregroundColor(.accentColor)
+            
+            Text("ChronoStamp Date Changer")
+                .font(.largeTitle.weight(.bold))
+            
+            Text("Updates 'Date Created' to match the filename. 'Date Modified' is only updated if the filename date is more recent.")
+                .font(.headline)
+                .fontWeight(.medium)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+        }
+    }
+    
+    private var dropZoneView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "square.and.arrow.down.on.square.fill")
+                .font(.system(size: 40, weight: .light))
+            Text("Drop Files Here")
+                .font(.title2.weight(.medium))
+            Text("or click to select files")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            if isTargeted {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.accentColor.opacity(0.2))
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [10]))
+                .foregroundStyle(isTargeted ? Color.accentColor : .secondary.opacity(0.5))
+        )
+        .scaleEffect(isTargeted ? 1.03 : 1.0)
+        .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isTargeted)
+    }
+
+    private var fileListView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Files to Process (\(fileURLs.count))")
+                .font(.headline)
+                .padding(.horizontal, 8)
+            
+            List {
+                ForEach(fileURLs, id: \.self) { url in
+                    Label(url.lastPathComponent, systemImage: "doc")
+                }
+                .onDelete { indexSet in
+                    fileURLs.remove(atOffsets: indexSet)
+                }
+            }
+            .listStyle(.inset(alternatesRowBackgrounds: true))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+    }
+    
+    private var instructionsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "info.circle")
+                Text("Supported Filename Formats")
+                    .font(.headline)
+            }
+            .foregroundColor(.secondary)
+            
+            Text("The date is parsed from the beginning of the filename.")
+                .font(.callout)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("• **Full Date:** `YYYY-MM-DD` or `YYYYMMDD`")
+                Text("• **Month:** `YYYY-MM` or `YYYYMM` (uses last day of month)")
+                Text("• **Year Range:** `YYYY-YYYY` or `YYYYYYYY` (uses Dec 31 of second year)")
+            }
+            .font(.callout)
+            .padding(.leading, 20)
+            
+            Text("Separators can be `-` or `_`, or even nothing. Years must be between 1900 and 2200.")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+    
+    // MARK: - Logic
+    
     /// A computed property to generate the message for the results alert.
     private var alertMessage: String {
         guard let result = processingResult else {
-            // This case should ideally not be reached if the alert is presented correctly.
             return "Processing finished with an unknown result."
         }
         
-        var messageText = "Successfully updated \(result.successCount) files."
+        var messages: [String] = []
+        
+        if result.successCount > 0 {
+            messages.append("✅ Successfully updated \(result.successCount) files.")
+        }
+        
         if !result.failedFiles.isEmpty {
             let failedList = result.failedFiles.joined(separator: "\n")
-            messageText += "\n\nFailed to update \(result.failedFiles.count) files:\n\(failedList)"
+            messages.append("❌ Failed to update \(result.failedFiles.count) files:\n\(failedList)")
         }
-        return messageText
+        
+        // This case should not be reachable if there are files to process,
+        // but it's a good fallback.
+        if messages.isEmpty {
+            return "No changes were made."
+        }
+        
+        return messages.joined(separator: "\n\n")
+    }
+
+    /// Presents a file picker to the user for selecting files.
+    private func openFilePicker() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        if panel.runModal() == .OK {
+            self.fileURLs.append(contentsOf: panel.urls)
+        }
     }
 
     /// This function is called when files are dropped onto the view.
     private func handleDrop(providers: [NSItemProvider]) {
         for provider in providers {
-            // Asynchronously load the file URL from the dropped item
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (urlData, error) in
-                // Switch to the main thread to update the UI
                 DispatchQueue.main.async {
                     guard let urlData = urlData as? Data, let url = URL(dataRepresentation: urlData, relativeTo: nil) else {
                         return
                     }
-                    // Add the valid file URL to our list
-                    self.fileURLs.append(url)
+                    if !self.fileURLs.contains(url) {
+                        self.fileURLs.append(url)
+                    }
                 }
             }
         }
@@ -138,86 +216,62 @@ struct ContentView: View {
 
         for url in fileURLs {
             let fileName = url.lastPathComponent
-
-            // 1. Try to parse a date from the filename
             guard let newDate = parseDate(from: fileName) else {
                 failedFiles.append(fileName)
-                continue // Skip to the next file if no date is found
+                continue
             }
-
-            // 2. Determine which attributes to update based on the new logic.
+            
             do {
-                // The creation date is always updated to the date from the filename.
-                var attributesToUpdate: [FileAttributeKey: Any] = [
-                    .creationDate: newDate
-                ]
-
-                // Get the file's current modification date.
+                var attributesToUpdate: [FileAttributeKey: Any] = [.creationDate: newDate]
                 let currentAttributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                
                 if let currentModificationDate = currentAttributes[.modificationDate] as? Date {
-                    // Only update the modification date if the date from the filename is more recent.
                     if newDate > currentModificationDate {
                         attributesToUpdate[.modificationDate] = newDate
                     }
                 } else {
-                    // If no modification date exists, set it.
                     attributesToUpdate[.modificationDate] = newDate
                 }
-
-                // Apply the new attributes to the file.
+                
                 try FileManager.default.setAttributes(attributesToUpdate, ofItemAtPath: url.path)
                 successCount += 1
             } catch {
-                // If getting or setting attributes fails, mark the file as failed.
                 failedFiles.append(fileName)
             }
         }
         
-        // 3. Set the result and show the alert
         self.processingResult = ProcessingResult(successCount: successCount, failedFiles: failedFiles)
         self.isShowingResultAlert = true
-        
-        // 4. Clear the file list from the UI after processing
         fileURLs.removeAll()
     }
 
     /// Parses a filename to extract a date based on predefined rules.
-    /// - Parameter fileName: The name of the file (e.g., "2023-10-26-document.pdf").
-    /// - Returns: A `Date` object if a valid date pattern is found, otherwise `nil`.
     private func parseDate(from fileName: String) -> Date? {
-        // This regex captures all supported date formats at the start of the string.
-        // Note: This modern Regex syntax requires macOS 13 or later.
         guard let match = fileName.firstMatch(of: /^(\d{4}[-_]\d{4}|\d{4}[-_]\d{2}[-_]\d{2}|\d{8}|\d{4}[-_]\d{2}|\d{6})/) else {
             return nil
         }
 
         let datePrefix = String(match.1)
         let calendar = Calendar(identifier: .gregorian)
-        // We set the time to noon to be consistent.
         var components = DateComponents(hour: 12, minute: 0)
         
         let YEAR_MIN = 1900
         let YEAR_MAX = 2200
 
-        func isValidYear(_ y: Int) -> Bool {
-            return (YEAR_MIN...YEAR_MAX).contains(y)
-        }
+        func isValidYear(_ y: Int) -> Bool { (YEAR_MIN...YEAR_MAX).contains(y) }
         
-        // Case 1: Two-year format (YYYY-YYYY, YYYY_YYYY)
         if let rangeMatch = datePrefix.firstMatch(of: /^(\d{4})[-_](\d{4})$/) {
             guard let y1 = Int(rangeMatch.1), let y2 = Int(rangeMatch.2), isValidYear(y1), isValidYear(y2) else { return nil }
             components.year = y2
             components.month = 12
             components.day = 31
         }
-        // Case 2: Full date format (YYYY-MM-DD, YYYY_MM_DD)
         else if let fullDateMatch = datePrefix.firstMatch(of: /^(\d{4})[-_](\d{2})[-_](\d{2})$/) {
             guard let y = Int(fullDateMatch.1), let m = Int(fullDateMatch.2), let d = Int(fullDateMatch.3), isValidYear(y) else { return nil }
             components.year = y
             components.month = m
             components.day = d
         }
-        // Case 3: 8 digits (YYYYMMDD or YYYYYYYY)
         else if datePrefix.count == 8, let _ = try? /\d{8}/.wholeMatch(in: datePrefix) {
             guard let y_part1 = Int(datePrefix.prefix(4)) else { return nil }
             
@@ -234,17 +288,15 @@ struct ContentView: View {
                 components.day = 31
             }
         }
-        // Case 4: Year-month format (YYYY-MM, YYYY_MM)
         else if let yearMonthMatch = datePrefix.firstMatch(of: /^(\d{4})[-_](\d{2})$/) {
             guard let y = Int(yearMonthMatch.1), let m = Int(yearMonthMatch.2), isValidYear(y) else { return nil }
             var tempComponents = DateComponents(year: y, month: m)
             
             if let dateForMonth = calendar.date(from: tempComponents), let range = calendar.range(of: .day, in: .month, for: dateForMonth) {
-                tempComponents.day = range.count // Last day of the month
+                tempComponents.day = range.count
                 components = tempComponents
             } else { return nil }
         }
-        // Case 5: 6 digits (YYYYMM)
         else if datePrefix.count == 6, let _ = try? /\d{6}/.wholeMatch(in: datePrefix) {
             guard let y = Int(datePrefix.prefix(4)), let m = Int(datePrefix.suffix(2)), isValidYear(y) else { return nil }
             var tempComponents = DateComponents(year: y, month: m)
@@ -262,5 +314,15 @@ struct ContentView: View {
         
         guard components.isValidDate(in: calendar) else { return nil }
         return calendar.date(from: components)
+    }
+}
+
+// MARK: - Extensions
+
+extension DateComponents {
+    /// Checks if the components form a valid date in the given calendar.
+    /// For example, it returns false for components representing February 30th.
+    func isValidDate(in calendar: Calendar) -> Bool {
+        return calendar.date(from: self) != nil
     }
 }
