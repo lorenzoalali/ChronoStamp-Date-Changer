@@ -4,7 +4,7 @@ A simple macOS utility to set a file's creation and modification dates based on 
 
 ## Description
 
-Do you have a collection of photos, documents, or scanned files with names like `2023-10-26_receipt.pdf` or `19981225_vacation_photo.jpg`? This tool lets you drag and drop those files to automatically update their filesystem "Date Created" and "Date Modified" attributes to match the date in their name. This helps keep your files chronologically sorted and accurately timestamped.
+Do you have a collection of photos, documents, or scanned files with names like `2023-10-26_receipt.pdf` or `19981225_vacation_photo.jpg`? This tool lets you drag and drop those files to automatically update their filesystem "Date Created" attribute to match the date in their name. The "Date Modified" is also updated, but only if the file's current modification date is older than the date in the filename. This helps keep your files chronologically sorted and accurately timestamped without losing the last-modified date for recently edited files.
 
 ## Features
 
@@ -19,7 +19,7 @@ Do you have a collection of photos, documents, or scanned files with names like 
 2.  **Drag and drop** one or more files onto the designated drop zone in the window.
 3.  The files will appear in a list.
 4.  Click the **"Update File Dates"** button.
-5.  The app will process each file, updating its creation and modification dates. The list will clear after processing is complete.
+5.  The app will process each file. The "Date Created" will be set from the filename. The "Date Modified" will only be updated if the date from the filename is more recent than the file's existing modification date. The list will clear after processing is complete.
 
 ## Supported Filename Formats
 

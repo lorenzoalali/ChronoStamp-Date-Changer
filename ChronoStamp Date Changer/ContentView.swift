@@ -29,6 +29,12 @@ struct ContentView: View {
                 .fontWeight(.bold)
                 .padding(.top)
 
+            Text("Updates 'Date Created' to match the filename. 'Date Modified' is only updated if the filename date is more recent.")
+                .font(.callout)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+
             GroupBox("Supported Formats") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("The date is parsed from the beginning of the filename.")
@@ -136,19 +142,33 @@ struct ContentView: View {
             // 1. Try to parse a date from the filename
             guard let newDate = parseDate(from: fileName) else {
                 failedFiles.append(fileName)
-                continue // Skip to the next file
+                continue // Skip to the next file if no date is found
             }
 
-            // 2. Try to set the new creation and modification dates
+            // 2. Determine which attributes to update based on the new logic.
             do {
-                let attributes: [FileAttributeKey: Any] = [
-                    .creationDate: newDate,
-                    .modificationDate: newDate
+                // The creation date is always updated to the date from the filename.
+                var attributesToUpdate: [FileAttributeKey: Any] = [
+                    .creationDate: newDate
                 ]
-                // The .path property is needed here for the FileManager API
-                try FileManager.default.setAttributes(attributes, ofItemAtPath: url.path)
+
+                // Get the file's current modification date.
+                let currentAttributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                if let currentModificationDate = currentAttributes[.modificationDate] as? Date {
+                    // Only update the modification date if the date from the filename is more recent.
+                    if newDate > currentModificationDate {
+                        attributesToUpdate[.modificationDate] = newDate
+                    }
+                } else {
+                    // If no modification date exists, set it.
+                    attributesToUpdate[.modificationDate] = newDate
+                }
+
+                // Apply the new attributes to the file.
+                try FileManager.default.setAttributes(attributesToUpdate, ofItemAtPath: url.path)
                 successCount += 1
             } catch {
+                // If getting or setting attributes fails, mark the file as failed.
                 failedFiles.append(fileName)
             }
         }
