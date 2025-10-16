@@ -177,7 +177,7 @@ struct ContentView: View {
         var components = DateComponents(hour: 12, minute: 0)
         
         let YEAR_MIN = 1900
-        let YEAR_MAX = 2999
+        let YEAR_MAX = 2200
 
         func isValidYear(_ y: Int) -> Bool {
             return (YEAR_MIN...YEAR_MAX).contains(y)

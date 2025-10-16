@@ -33,7 +33,7 @@ The date must appear at the very beginning of the filename. The following format
     -   Example: `2021-2022_project.zip` sets the date to the *last day* of the second year (December 31, 2022).
 
 **Notes:**
--   Years must be between 1900 and 2999.
+-   Years must be between 1900 and 2200.
 -   For 8-digit strings without separators (e.g., `20230415`), the tool first tries to parse it as `YYYYMMDD`. If that is not a valid date, it then tries to parse it as a `YYYYYYYY` year range.
 
 ## Requirements
