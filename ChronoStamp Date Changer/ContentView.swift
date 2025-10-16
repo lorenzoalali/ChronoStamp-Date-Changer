@@ -43,9 +43,9 @@ struct ContentView: View {
                         Text("• **Month:** `YYYY-MM` or `YYYYMM` (uses last day of month)")
                         Text("• **Year Range:** `YYYY-YYYY` or `YYYYYYYY` (uses Dec 31 of second year)")
                     }
-                    Text("Separators can be `-` or `_`.")
+                    Text("Separators can be `-` or `_`, or even nothing between YYYY, MMn and DD.")
                         .font(.footnote)
-                    Text("Years must be between 1900 and 2999.")
+                    Text("Years must be between 1900 and 2200.")
                         .font(.footnote)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
