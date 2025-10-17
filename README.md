@@ -40,6 +40,8 @@ The date must appear at the very beginning of the filename. The following format
 
 -   macOS 13.0 (Ventura) or later.
 
+> Note: This application has been developed and tested on macOS Tahoe (26).
+
 ## Building from Source
 
 1.  Clone this repository.

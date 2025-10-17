@@ -23,8 +23,9 @@ struct ContentView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 headerView
+                    .padding(.bottom, 10)
                 
                 dropZoneView
                     .onDrop(of: [UTType.fileURL], isTargeted: $isTargeted) { providers in
@@ -34,23 +35,25 @@ struct ContentView: View {
                     .onTapGesture(perform: openFilePicker)
                 
                 if !fileURLs.isEmpty {
-                    fileListView
-                    
-                    Button(action: processFiles) {
-                        Label("Update File Dates", systemImage: "wand.and.stars")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
+                    VStack(spacing: 20) {
+                        fileListView
+                        
+                        Button(action: processFiles) {
+                            Label("Update File Dates", systemImage: "wand.and.stars")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent) // Use the modern glass button style
+                        .controlSize(.large)
+                        .keyboardShortcut(.defaultAction)
                     }
-                    .buttonStyle(.glassProminent)
-                    .controlSize(.large)
-                    .keyboardShortcut(.defaultAction)
                 }
                 
                 instructionsView
             }
-            .padding(.horizontal, 32)
-            .padding(.vertical)
+            .padding(24)
         }
+        .navigationTitle("ChronoStamp Date Changer")
         .alert("Processing Complete", isPresented: $isShowingResultAlert) {
             Button("OK") {}
         } message: {
@@ -63,7 +66,7 @@ struct ContentView: View {
     private var headerView: some View {
         VStack(spacing: 8) {
             Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 48, weight: .light))
+                .font(.system(size: 52, weight: .thin)) // A lighter weight for a more elegant look
                 .foregroundColor(.accentColor)
             
             Text("ChronoStamp Date Changer")
@@ -90,27 +93,27 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
-        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 20)) // Increased corner radius for a rounder form
         .overlay {
             if isTargeted {
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 20)
                     .fill(Color.accentColor.opacity(0.2))
             }
         }
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [10]))
-                .foregroundStyle(isTargeted ? Color.accentColor : .secondary.opacity(0.5))
+            // Replace the dashed border with a cleaner, solid stroke for a more modern feel
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(isTargeted ? Color.accentColor : .secondary.opacity(0.4), lineWidth: 2)
         )
         .scaleEffect(isTargeted ? 1.03 : 1.0)
         .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isTargeted)
     }
 
     private var fileListView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Files to Process (\(fileURLs.count))")
                 .font(.headline)
-                .padding(.horizontal, 8)
+                .padding(.horizontal)
             
             List {
                 ForEach(fileURLs, id: \.self) { url in
@@ -121,8 +124,12 @@ struct ContentView: View {
                 }
             }
             .listStyle(.inset(alternatesRowBackgrounds: true))
+            // Constrain the list's height to prevent it from overwhelming the layout
+            .frame(height: min(CGFloat(fileURLs.count) * 40, 240))
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20)) // Group the list in a material "card" for better hierarchy
     }
     
     private var instructionsView: some View {
@@ -151,7 +158,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20)) // Consistent corner radius
     }
     
     // MARK: - Logic
@@ -247,6 +254,12 @@ struct ContentView: View {
 
     /// Parses a filename to extract a date based on predefined rules.
     private func parseDate(from fileName: String) -> Date? {
+        // Fail fast if the filename doesn't start with a plausible century prefix.
+        // This avoids running complex regex on files that clearly won't match.
+        guard fileName.hasPrefix("19") || fileName.hasPrefix("20") || fileName.hasPrefix("21") || fileName.hasPrefix("22") else {
+            return nil
+        }
+
         guard let match = fileName.firstMatch(of: /^(\d{4}[-_]\d{4}|\d{4}[-_]\d{2}[-_]\d{2}|\d{8}|\d{4}[-_]\d{2}|\d{6})/) else {
             return nil
         }
